@@ -1,10 +1,7 @@
 from pathlib import Path
 
-# Path to Lakh dataset root
 dataset_root = 'data'
-
-# 
-original_name = 'debug'
+original_name = 'original' # path to Lakh dataset
 tempo_name = 'tempo'
 histo_name = 'histo'
 song_histo_name = 'song_histo'
@@ -14,7 +11,7 @@ chords_name = 'chords'
 chords_index_name = 'chords_index'
 
 data_dir = Path(dataset_root)
-midi_root_dir = data_dir / original_name
+original_root_dir = data_dir / original_name
 tempo_root_dir = data_dir / tempo_name
 histo_root_dir = data_dir / histo_name
 song_histo_root_dir = data_dir / song_histo_name

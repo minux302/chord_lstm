@@ -62,36 +62,37 @@ def change_tempo_midi(midi_file, save_path):
     new_mid.save(save_path)
 
 
-def pianoroll_to_histo_bar(pianoroll, samples_per_bar):
+def pianoroll_to_histo(pianoroll, samples_per_bar=config.samples_per_bar):
     bar_num = pianoroll.shape[1] // samples_per_bar
-    histo_bar = np.zeros((pianoroll.shape[0], bar_num))
+    histo_over_octave = np.zeros((pianoroll.shape[0], bar_num))
     for i in range(bar_num):
-        histo_bar[:, i] = np.sum(pianoroll[:, i*samples_per_bar:(i+1)*samples_per_bar], axis=1)
-    return histo_bar
+        histo_over_octave[:, i] = np.sum(pianoroll[:, i*samples_per_bar:(i+1)*samples_per_bar], axis=1)
+    return histo_over_octave
 
 
-def histo_bar_to_histo(histo_bar, octave):
-    histo_oct = np.zeros((octave, histo_bar.shape[1]))
-    octave_num = histo_bar.shape[0] // octave
+def compress_octave_notes(histo_over_octave, octave=config.octave):
+    histo = np.zeros((octave, histo_over_octave.shape[1]))
+    octave_num = histo.shape[0] // octave
     for i in range(octave_num - 1):
-        histo_oct = np.add(histo_oct, histo_bar[i*octave:(i+1)*octave])
-    return histo_oct
+        histo = np.add(histo, histo_over_octave[i*octave:(i+1)*octave])
+    return histo
 
 
 def midi_to_histo(midi_file, save_path):
-    """Generate histogram (histo_oct) from midi_file.
-        histo_oct (np.array): 
-            histo_oct[i][j]: non zero num per bar_j for key_i
-            key_i: 0-11, it means C, Db, D, ...
+    """Generate histogram (histo) from midi_file.
+        histo (np.array): 
+            histo[i][j]: non zero num per bar_j for key_i
+            key_i: 0-11, it means C, Db, D, ..., Bb, B.
             bar_j: index in range(time length in song // time length in bar).
     """
     mid = pm.PrettyMIDI(str(midi_file))
     pianoroll = mid.get_piano_roll()  # rethink to use original get_piano_roll func
-    histo_bar = pianoroll_to_histo_bar(pianoroll, config.samples_per_bar)
-    histo_oct = histo_bar_to_histo(histo_bar, config.octave)  # shape: (12, pianoroll.shape[1]_per_song // samples_par_bar)
-    pickle.dump(histo_oct, open(str(save_path), 'wb'))
+    histo_over_octave = pianoroll_to_histo(pianoroll)  # shape: (128, pianoroll.shape[1] // samples_par_bar)
+    histo = compress_octave_notes(histo_over_octave)  # shape: (12, pianoroll.shape[1] // samples_par_bar)
+    pickle.dump(histo, open(str(save_path), 'wb'))
 
 
+"""
 def histo_to_song_histo(histo_file, save_path):
     histo = pickle.load(open(str(histo_file), 'rb'))
     song_histo = np.sum(histo, axis=1)
@@ -215,10 +216,11 @@ generate_target_from_original(original_root_dir=chords_root_dir,
                                   chord_to_index = pickle.load(open("data/chord_to_index.pickle", 'rb'))
     index_to_chord = pickle.load(open("data/index_to_chord.pickle", 'rb'))
                               )
+"""
 
 
 def save_tempo_changed_midi():
-    generate_target_from_original(original_root_dir=config.debug_root_dir,
+    generate_target_from_original(original_root_dir=config.original_root_dir,
                                   target_root_dir=config.tempo_root_dir,
                                   original_suffix="mid",
                                   target_suffix="mid",
@@ -233,11 +235,8 @@ def save_histogram_of_midi():
 
 def preprocess():
 
-    save_tempo_changed_midi()
+    # save_tempo_changed_midi()
     save_histogram_of_midi()
-
-
-
 
 if __name__ == "__main__":
     preprocess()
