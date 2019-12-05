@@ -31,10 +31,10 @@ def generate_target_from_original(original_root_dir, target_root_dir,
                                   original_suffix, target_suffix, process_file, **kwargs):
     """Util func for processing original data to target data.
         Args:
-            original_root_dir (pathlib object): Path to root dir of Lakh data dir format, like `lmd_matched`.
-            target_root_dir (pathlib objext): Path to root dir of Lakh data dir format. Usually it is empty before working this func.
-            original_suffix (str): Data suffix before processed.
-            target_suffix (str): Data suffix after processed.
+            original_root_dir (pathlib object): Path to root dir of Lakh dir format, like `lmd_matched`.
+            target_root_dir (pathlib objext): Path to root dir of Lakh dir format. Usually it is empty before working this func.
+            original_suffix (str): Data suffix before it is processed.
+            target_suffix (str): Data suffix after it is processed.
             process_file (func): Func for processing each data(.original_suffix).
             (**kwargs: Optional args for process_file())
     """
@@ -92,20 +92,12 @@ def midi_to_histo(midi_file, save_path):
     pickle.dump(histo, open(str(save_path), 'wb'))
 
 
-"""
-def histo_to_song_histo(histo_file, save_path):
+def histo_to_entire_histo(histo_file, save_path):
     histo = pickle.load(open(str(histo_file), 'rb'))
-    song_histo = np.sum(histo, axis=1)
-    pickle.dump(song_histo, open(save_path , 'wb'))
+    entire_histo = np.sum(histo, axis=1)
+    pickle.dump(entire_histo, open(save_path , 'wb'))
 
-generate_target_from_original(original_root_dir=histo_root_dir,
-                              target_root_dir=song_histo_root_dir,
-                              original_name=histo_name,
-                              target_name=song_histo_name,
-                              original_suffix='pickle',
-                              target_suffix='pickle',
-                              process_file=histo_to_song_histo)
-
+"""
 def pianoroll_to_note_index(pianoroll):
     note_ind = []
     for i in range(0, pianoroll.shape[1]):
@@ -233,10 +225,19 @@ def save_histogram_of_midi():
                                   target_suffix='pickle',
                                   process_file=midi_to_histo)
 
+def save_entire_histogram():
+    generate_target_from_original(original_root_dir=config.histo_root_dir,
+                                  target_root_dir=config.entire_histo_root_dir,
+                                  original_suffix='pickle',
+                                  target_suffix='pickle',
+                                  process_file=histo_to_entire_histo)
+
+
 def preprocess():
 
     # save_tempo_changed_midi()
-    save_histogram_of_midi()
+    # save_histogram_of_midi()
+    save_entire_histogram()
 
 if __name__ == "__main__":
     preprocess()
