@@ -62,7 +62,6 @@ def change_tempo_midi(midi_file, save_path):
     new_mid.save(save_path)
 
 
-
 def pianoroll_to_histo_bar(pianoroll, samples_per_bar):
     bar_num = pianoroll.shape[1] // samples_per_bar
     histo_bar = np.zeros((pianoroll.shape[0], bar_num))
@@ -80,21 +79,18 @@ def histo_bar_to_histo(histo_bar, octave):
 
 
 def midi_to_histo(midi_file, save_path):
-    """hist_oct[i][j]: non zero num per bar_j for key_i"""
+    """Generate histogram (histo_oct) from midi_file.
+        histo_oct (np.array): 
+            histo_oct[i][j]: non zero num per bar_j for key_i
+            key_i: 0-11, it means C, Db, D, ...
+            bar_j: index in range(time length in song // time length in bar).
+    """
     mid = pm.PrettyMIDI(str(midi_file))
     pianoroll = mid.get_piano_roll()  # rethink to use original get_piano_roll func
-    histo_bar = pianoroll_to_histo_bar(pianoroll, samples_per_bar)
-    histo_oct = histo_bar_to_histo(histo_bar, octave)  # shape: (12, pianoroll.shape[1]_per_song // samples_par_bar)
+    histo_bar = pianoroll_to_histo_bar(pianoroll, config.samples_per_bar)
+    histo_oct = histo_bar_to_histo(histo_bar, config.octave)  # shape: (12, pianoroll.shape[1]_per_song // samples_par_bar)
     pickle.dump(histo_oct, open(str(save_path), 'wb'))
-        
-        
-generate_target_from_original(original_root_dir=tempo_root_dir,
-                              target_root_dir=histo_root_dir,
-                              original_name=tempo_name,
-                              target_name=histo_name,
-                              original_suffix='mid',
-                              target_suffix='pickle',
-                              process_file=midi_to_histo)
+
 
 def histo_to_song_histo(histo_file, save_path):
     histo = pickle.load(open(str(histo_file), 'rb'))
@@ -224,16 +220,21 @@ generate_target_from_original(original_root_dir=chords_root_dir,
 def save_tempo_changed_midi():
     generate_target_from_original(original_root_dir=config.debug_root_dir,
                                   target_root_dir=config.tempo_root_dir,
-                                  original_name=config.debug_name,
-                                  target_name=config.tempo_name,
                                   original_suffix="mid",
                                   target_suffix="mid",
                                   process_file=change_tempo_midi)
 
+def save_histogram_of_midi():
+    generate_target_from_original(original_root_dir=config.tempo_root_dir,
+                                  target_root_dir=config.histo_root_dir,
+                                  original_suffix='mid',
+                                  target_suffix='pickle',
+                                  process_file=midi_to_histo)
 
 def preprocess():
 
     save_tempo_changed_midi()
+    save_histogram_of_midi()
 
 
 
