@@ -97,40 +97,16 @@ def histo_to_entire_histo(histo_file, save_path):
     entire_histo = np.sum(histo, axis=1)
     pickle.dump(entire_histo, open(save_path , 'wb'))
 
-"""
-def pianoroll_to_note_index(pianoroll):
-    note_ind = []
-    for i in range(0, pianoroll.shape[1]):
-        step = []
-        for j, note in enumerate(pianoroll[:,i]):
-            if note != 0:
-                step.append(j)
-        note_ind.append(tuple(step))
-    return note_ind
-
 
 def note_to_index(midi_file, save_path):
     mid = pm.PrettyMIDI(str(midi_file))
-    p = mid.get_piano_roll(fs=fs)
-
-    # make note value 1, Todo
-    for i, _ in enumerate(p):
-        for j, _ in enumerate(p[i]):
-            if p[i, j] != 0:
-                p[i,j] = 1
-
-    n = pianoroll_to_note_index(p)
-    pickle.dump(n, open(str(save_path), 'wb'))
+    pianoroll = mid.get_piano_roll(fs=config.fs)
+    index_roll = [[note_i for note_i, value in enumerate(pianoroll[:, time_i]) if value != 0]
+                  for time_i in range(pianoroll.shape[1])]
+    pickle.dump(index_roll, open(str(save_path), 'wb'))
 
     
-generate_target_from_original(original_root_dir=tempo_root_dir,
-                              target_root_dir=roll_root_dir,
-                              original_name=tempo_name,
-                              target_name=roll_name,
-                              original_suffix='mid',
-                              target_suffix='pickle',
-                              process_file=note_to_index)
-
+"""
 def histo_to_chord(histo_file, save_path):
     histo = pickle.load(open(histo_file, 'rb'))
     max_n = histo.argsort(axis=0)[-chord_n:]
@@ -232,12 +208,19 @@ def save_entire_histogram():
                                   target_suffix='pickle',
                                   process_file=histo_to_entire_histo)
 
+def save_index_roll():
+    generate_target_from_original(original_root_dir=config.tempo_root_dir,
+                                  target_root_dir=config.index_roll_root_dir,
+                                  original_suffix='mid',
+                                  target_suffix='pickle',
+                                  process_file=note_to_index)
 
 def preprocess():
 
     # save_tempo_changed_midi()
     # save_histogram_of_midi()
-    save_entire_histogram()
+    # save_entire_histogram()
+    save_index_roll()
 
 if __name__ == "__main__":
     preprocess()
