@@ -72,7 +72,7 @@ def pianoroll_to_histo(pianoroll, samples_per_bar=config.samples_per_bar):
 
 def compress_octave_notes(histo_over_octave, octave=config.octave):
     histo = np.zeros((octave, histo_over_octave.shape[1]))
-    octave_num = histo.shape[0] // octave
+    octave_num = histo_over_octave.shape[0] // octave
     for i in range(octave_num - 1):
         histo = np.add(histo, histo_over_octave[i*octave:(i+1)*octave])
     return histo
@@ -106,32 +106,14 @@ def note_to_index(midi_file, save_path):
     pickle.dump(index_roll, open(str(save_path), 'wb'))
 
     
-"""
 def histo_to_chord(histo_file, save_path):
     histo = pickle.load(open(histo_file, 'rb'))
-    max_n = histo.argsort(axis=0)[-chord_n:]
-    chords = []
-    for i in range(0, max_n.shape[1]):
-        chord = []
-        for note in max_n[:,i]:
-            if histo[note, i] != 0:  # ここがなんでいるかわからない
-                chord.append(note)
-            # chord.append(note)
-        chord.sort()
-        chords.append(tuple(chord))
-    assert(histo.shape[1] == len(chords))
-    # print(chords)
+    sorted_note_per_time = histo.argsort(axis=0)[-config.num_notes_in_chord:]
+    chord = [sorted([note for note in sorted_note_per_time[:, i]])
+             for i in range(sorted_note_per_time.shape[1])]
+    pickle.dump(chord, open(str(save_path), 'wb'))
         
-    pickle.dump(chords, open(str(save_path), 'wb'))
-        
-generate_target_from_original(original_root_dir=histo_root_dir,
-                              target_root_dir=chords_root_dir,
-                              original_name=histo_name,
-                              target_name=chords_name,
-                              original_suffix='pickle',
-                              target_suffix='pickle',
-                              process_file=histo_to_chord)
-
+"""
 
 def get_chord_dict():
     chord_to_index = pickle.load(open("data/chord_to_index.pickle", 'rb'))
@@ -215,12 +197,21 @@ def save_index_roll():
                                   target_suffix='pickle',
                                   process_file=note_to_index)
 
+def save_chord():
+    generate_target_from_original(original_root_dir=config.histo_root_dir,
+                                  target_root_dir=config.chord_root_dir,
+                                  original_suffix='pickle',
+                                  target_suffix='pickle',
+                                  process_file=histo_to_chord)
+
+
 def preprocess():
 
     # save_tempo_changed_midi()
     # save_histogram_of_midi()
     # save_entire_histogram()
-    save_index_roll()
+    # save_index_roll()
+    save_chord()
 
 if __name__ == "__main__":
     preprocess()
