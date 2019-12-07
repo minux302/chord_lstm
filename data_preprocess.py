@@ -1,6 +1,4 @@
-import os
 import pickle
-import sys
 from collections import Counter
 from pathlib import Path
 
@@ -155,60 +153,20 @@ def _save_chord_dict(chords_root_dir, save_dir):
                 open(str(save_dir / "index_to_chord.pickle"), 'wb'))
 
 
-"""
-
-def get_chord_dict():
-    chord_to_index = pickle.load(open("data/chord_to_index.pickle", 'rb'))
-    index_to_chord = pickle.load(open("data/index_to_chord.pickle", 'rb'))
-    return chord_to_index, index_to_chord
-
-
-def chords_to_index(chords,chord_to_index):
+def chords_to_indexs(chords, chord_to_index):
     chords_index = []
     for chord in chords:
         if chord in chord_to_index:
             chords_index.append(chord_to_index[chord])
         else:
-            chords_index.append(chord_to_index[UNK])
+            chords_index.append(chord_to_index[config.UNK])
     return chords_index
 
 
 def chords_to_index_save(chords_file, save_path, chord_to_index):
     chords = pickle.load(open(str(chords_file), 'rb'))
-    chords_index = chords_to_index(chords, chord_to_index)  # todo, refactor, name rethink
-    pickle.dump(chords_index, open(str(save_path) , 'wb'))
-
-    
-def chords_to_indexes(chords_dir, chords_index_dir):
-    chord_to_index, index_to_chord = get_chord_dict()
-    for chords_file in chords_dir.glob('*.pickle'):
-        try:
-            chords_to_index_save(chords_file, chords_index_dir / chords_file.name,
-                                 chord_to_index)
-        except (ValueError, OSError) as e:
-            exception_str = 'Unexpected error in ' + str(midi_file)  + ':\n', e, sys.exc_info()[0]
-            print(exception_str)
-            
-
-def save_index_from_chords(chords_root_dir, chords_index_root_dir):
-    for chords_dir in tqdm(chords_root_dir.glob('**/*')):
-        if is_containing_data_directly(chords_dir):
-            chords_index_dir = Path(str(chords_dir).replace(chords_name, chords_index_name))
-            if not(chords_index_dir.exists()):
-                chords_index_dir.mkdir(parents=True)
-            chords_to_indexes(chords_dir, chords_index_dir)
-            
-generate_target_from_original(original_root_dir=chords_root_dir,
-                              target_root_dir=chords_index_root_dir,
-                              original_name=chords_name,
-                              target_name=chords_index_name,
-                              original_suffix='pickle',
-                              target_suffix='pickle',
-                              process_file=chords_to_index_save,
-                                  chord_to_index = pickle.load(open("data/chord_to_index.pickle", 'rb'))
-    index_to_chord = pickle.load(open("data/index_to_chord.pickle", 'rb'))
-                              )
-"""
+    chords_index = chords_to_indexs(chords, chord_to_index)  # todo, refactor, name rethink
+    pickle.dump(chords_index, open(str(save_path), 'wb'))
 
 
 def save_tempo_changed_midi():
@@ -256,6 +214,14 @@ def save_chord_dict():
                      save_dir=config.chord_dict_dir)
 
 
+def save_chords_indexes():
+    generate_target_from_original(original_root_dir=config.chords_root_dir,
+                                  target_root_dir=config.chords_index_root_dir,
+                                  original_suffix='pickle',
+                                  target_suffix='pickle',
+                                  process_file=chords_to_index_save,
+                                  chord_to_index = pickle.load(open("data/chord_dict/chord_to_index.pickle", 'rb'))
+    )
 
 
 def preprocess():
@@ -265,7 +231,8 @@ def preprocess():
     # save_entire_histogram()
     # save_index_roll()
     # save_chords()
-    save_chord_dict()
+    # save_chord_dict()
+    save_chords_indexes()
 
 
 if __name__ == "__main__":
