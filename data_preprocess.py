@@ -116,38 +116,43 @@ def note_to_index(midi_file, save_path):
     pickle.dump(index_roll, open(str(save_path), 'wb'))
 
 
-def histo_to_chord(histo_file, save_path):
+def histo_to_chords(histo_file, save_path):
     histo = pickle.load(open(histo_file, 'rb'))
     sorted_note_per_time = histo.argsort(axis=0)[-config.num_notes_in_chord:]
-    chord = [sorted([note for note in sorted_note_per_time[:, i]])
-             for i in range(sorted_note_per_time.shape[1])]
-    pickle.dump(chord, open(str(save_path), 'wb'))
+    chords = [tuple(sorted([note for note in sorted_note_per_time[:, i]]))
+              for i in range(sorted_note_per_time.shape[1])]
+    pickle.dump(chords, open(str(save_path), 'wb'))
 
 
-def count_chords(chord_root_dir):
+def count_chords(chords_root_dir):
     chord_cntr = Counter()
-    for chord_dir in tqdm(chord_root_dir.glob('**/*')):
-        if is_individual_data_dir(chord_dir):
-            for chord_file in chord_dir.glob('*.pickle'):
-                chords = pickle.load(open(str(chord_file), 'rb'))
+    for chords_dir in tqdm(chords_root_dir.glob('**/*')):
+        if is_containing_data_directly(chords_dir):
+            for chords_file in chords_dir.glob('*.pickle'):
+                chords = pickle.load(open(str(chords_file), 'rb'))
                 for chord in chords:
                     if chord in chord_cntr:
-                        chord_cntr[chord] +=1
+                        chord_cntr[chord] += 1
                     else:
-                        chord_cntr[chord] = 1                    
-    return chord_cntr.most_common(n=num_chords-1)
+                        chord_cntr[chord] = 1
+    return chord_cntr.most_common(n=config.num_chords - 1)
 
 
-def make_chord_dict(chords_root_dir):
+def _save_chord_dict(chords_root_dir, save_dir):
     cntr = count_chords(chords_root_dir)
     chord_to_index = dict()
-    chord_to_index[UNK] = 0
+    chord_to_index[config.UNK] = 0
+
     for chord, _ in cntr:
-        chord_to_index[chord] = len(chord_to_index) # todo refactor
+        chord_to_index[chord] = len(chord_to_index)  # todo refactor
     index_to_chord = {v: k for k, v in chord_to_index.items()}
-    pickle.dump(chord_to_index, open("data/chord_to_index.pickle", 'wb'))
-    pickle.dump(index_to_chord, open("data/index_to_chord.pickle", 'wb'))
-    return chord_to_index, index_to_chord
+
+    if not(save_dir.exists()):
+        save_dir.mkdir(parents=True)
+    pickle.dump(chord_to_index,
+                open(str(save_dir / "chord_to_index.pickle"), 'wb'))
+    pickle.dump(index_to_chord,
+                open(str(save_dir / "index_to_chord.pickle"), 'wb'))
 
 
 """
@@ -238,12 +243,19 @@ def save_index_roll():
                                   process_file=note_to_index)
 
 
-def save_chord():
+def save_chords():
     generate_target_from_original(original_root_dir=config.histo_root_dir,
-                                  target_root_dir=config.chord_root_dir,
+                                  target_root_dir=config.chords_root_dir,
                                   original_suffix='pickle',
                                   target_suffix='pickle',
-                                  process_file=histo_to_chord)
+                                  process_file=histo_to_chords)
+
+
+def save_chord_dict():
+    _save_chord_dict(chords_root_dir=config.chords_root_dir,
+                     save_dir=config.chord_dict_dir)
+
+
 
 
 def preprocess():
@@ -252,7 +264,8 @@ def preprocess():
     # save_histogram_of_midi()
     # save_entire_histogram()
     # save_index_roll()
-    # save_chord()
+    # save_chords()
+    save_chord_dict()
 
 
 if __name__ == "__main__":
