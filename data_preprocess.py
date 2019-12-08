@@ -22,8 +22,9 @@ def process_dir(original_dir, target_dir, original_suffix, target_suffix,
     for original_file in original_dir.glob('*.' + original_suffix):
         try:
             process_file(original_file,
-                         target_dir / original_file.name.replace(original_suffix,
-                                                                 target_suffix),
+                         target_dir /
+                         original_file.name.replace(original_suffix,
+                                                    target_suffix),
                          **kwargs)
         except (ValueError, OSError) as e:
             print('Unexpected error in ' + str(original_file), e)
@@ -89,9 +90,9 @@ def compress_octave_notes(histo_over_octave, octave=config.octave):
 def midi_to_histo(midi_file, save_path):
     """Generate histogram (histo) from midi_file.
         histo (np.array):
-            histo[i][j]: non zero num per bar_j for key_i
-            key_i: 0-11, it means C, Db, D, ..., Bb, B.
-            bar_j: index in range(time length in song // time length in bar).
+            histo[i][j]: non zero num per bar_j for key_i.
+            key_i is 0-11, it means C, Db, D, ..., Bb, B.
+            bar_j is index in range(time length in song // time length in bar).
     """
     mid = pm.PrettyMIDI(str(midi_file))
     pianoroll = mid.get_piano_roll()
@@ -114,9 +115,15 @@ def note_to_index(midi_file, save_path):
     pickle.dump(index_roll, open(str(save_path), 'wb'))
 
 
-def histo_to_chords(histo_file, save_path):
+def histo_to_chords(histo_file, save_path,
+                    num_notes_in_chord=config.num_notes_in_chord):
+    """Generate chord list (chords) from histogram.
+        chords (list): chords[i] (tuple): notes (0-11) in bar_i.
+            bar_i is index in range(time length in song // time length in bar).
+            It is tuple, sorted, and len(chords[i]) < num_notes_in_chord.
+    """
     histo = pickle.load(open(histo_file, 'rb'))
-    sorted_note_per_time = histo.argsort(axis=0)[-config.num_notes_in_chord:]
+    sorted_note_per_time = histo.argsort(axis=0)[-num_notes_in_chord:]
     chords = [tuple(sorted([note for note in sorted_note_per_time[:, i]]))
               for i in range(sorted_note_per_time.shape[1])]
     pickle.dump(chords, open(str(save_path), 'wb'))
@@ -231,8 +238,8 @@ def preprocess():
     # save_entire_histogram()
     # save_index_roll()
     # save_chords()
-    # save_chord_dict()
-    save_chords_indexes()
+    save_chord_dict()
+    # save_chords_indexes()
 
 
 if __name__ == "__main__":
