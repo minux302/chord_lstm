@@ -143,40 +143,40 @@ def count_chords(chords_root_dir):
     return chord_cntr.most_common(n=config.num_chords - 1)
 
 
-def _save_chord_dict(chords_root_dir, save_dir):
+def _save_dicts_for_chord(chords_root_dir, save_dir):
     cntr = count_chords(chords_root_dir)
-    chord_to_index = dict()
+    chord_dict = dict()
     id = 0
-    chord_to_index[config.UNK] = id
+    chord_dict[config.UNK] = id
     id += 1
 
     for chord, _ in cntr:
-        chord_to_index[chord] = id
+        chord_dict[chord] = id
         id += 1
-    index_to_chord = {v: k for k, v in chord_to_index.items()}
+    index_dict = {v: k for k, v in chord_dict.items()}
 
     if not(save_dir.exists()):
         save_dir.mkdir(parents=True)
-    pickle.dump(chord_to_index,
-                open(str(save_dir / "chord_to_index.pickle"), 'wb'))
-    pickle.dump(index_to_chord,
-                open(str(save_dir / "index_to_chord.pickle"), 'wb'))
+    pickle.dump(chord_dict,
+                open(str(save_dir / "chord_dict.pickle"), 'wb'))
+    pickle.dump(index_dict,
+                open(str(save_dir / "index_dict.pickle"), 'wb'))
 
 
-def chords_to_indexs(chords, chord_to_index):
-    chords_index = []
+def chord_to_index(chords, chord_dict):
+    chord_indexes = []
     for chord in chords:
-        if chord in chord_to_index:
-            chords_index.append(chord_to_index[chord])
+        if chord in chord_dict:
+            chord_indexes.append(chord_dict[chord])
         else:
-            chords_index.append(chord_to_index[config.UNK])
-    return chords_index
+            chord_indexes.append(chord_dict[config.UNK])
+    return chord_indexes
 
 
-def chords_to_index_save(chords_file, save_path, chord_to_index):
+def chords_to_index_save(chords_file, save_path, chord_dict):
     chords = pickle.load(open(str(chords_file), 'rb'))
-    chords_index = chords_to_indexs(chords, chord_to_index)  # todo, refactor, name rethink
-    pickle.dump(chords_index, open(str(save_path), 'wb'))
+    chord_indexes = chord_to_index(chords, chord_dict)
+    pickle.dump(chord_indexes, open(str(save_path), 'wb'))
 
 
 def save_tempo_changed_midi():
@@ -220,8 +220,8 @@ def save_chords():
 
 
 def save_chord_dict():
-    _save_chord_dict(chords_root_dir=config.chords_root_dir,
-                     save_dir=config.chord_dict_dir)
+    _save_dicts_for_chord(chords_root_dir=config.chords_root_dir,
+                          save_dir=config.chord_dict_dir)
 
 
 def save_chords_indexes():
@@ -230,7 +230,7 @@ def save_chords_indexes():
                                   original_suffix='pickle',
                                   target_suffix='pickle',
                                   process_file=chords_to_index_save,
-                                  chord_to_index = pickle.load(open("data/chord_dict/chord_to_index.pickle", 'rb'))
+                                  chord_dict=pickle.load(open("data/dicts/chord_dict.pickle", 'rb'))
     )
 
 
@@ -242,7 +242,7 @@ def preprocess():
     # save_index_roll()
     # save_chords()
     save_chord_dict()
-    # save_chords_indexes()
+    save_chords_indexes()
 
 
 if __name__ == "__main__":
