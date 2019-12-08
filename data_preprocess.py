@@ -146,10 +146,13 @@ def count_chords(chords_root_dir):
 def _save_chord_dict(chords_root_dir, save_dir):
     cntr = count_chords(chords_root_dir)
     chord_to_index = dict()
-    chord_to_index[config.UNK] = 0
+    id = 0
+    chord_to_index[config.UNK] = id
+    id += 1
 
     for chord, _ in cntr:
-        chord_to_index[chord] = len(chord_to_index)  # todo refactor
+        chord_to_index[chord] = id
+        id += 1
     index_to_chord = {v: k for k, v in chord_to_index.items()}
 
     if not(save_dir.exists()):
