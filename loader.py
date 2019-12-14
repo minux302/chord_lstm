@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 from pathlib import Path
 from data_preprocess import is_containing_data_directly
 
@@ -18,21 +19,32 @@ class ChordLoader:
     def __init__(self,
                  dataset_path,
                  song_batch_size,
-                 # batch_size,
-                 # seq_len
+                 batch_size,
+                 seq_len,
+                 loader_type,
+                 split_ratio=0.8
                  ):
 
-        self.file_list = load_chord_indexes(dataset_path)
+        assert loader_type in ["train", "validation"], "loader_type is train or validation"
+        file_list = load_chord_indexes(dataset_path)
+        if loader_type == 'train':
+            self.file_list = file_list[int(len(file_list)*split_ratio):]
+        else:
+            self.file_list = file_list[:int(len(file_list)*split_ratio)]
+
         self.song_batch_size = song_batch_size
-        # self.batch_size = batch_size
-        # self.seq_len = seq_len
+        self.batch_size = batch_size
+        self.seq_len = seq_len
 
         self.file_index = 0
+        self.batch_index = 0
+        self.input_buffer = []
+        self.target_buffer = []
 
     def _get_chord_indexes(self):
         chord_indexes = pickle.load(open(self.file_list[self.file_index], 'rb'))
         self.file_index += 1
-        yield chord_indexes
+        return chord_indexes
 
     # rethink for using this fuction
     def _preprocess(self, chord_indexes):
@@ -51,17 +63,47 @@ class ChordLoader:
             before_chord = chord_index
         return processed_chord_indexes
 
+    def _get_input_and_target(self, chord_indexes_batch):
+        for chord_index in chord_indexes_batch:
+            for i in range(len(chord_index) - self.seq_len - 1):
+                self.input_buffer.append(chord_index[i:i+self.seq_len])
+                self.target_buffer.append(chord_index[i+self.seq_len])
+
     def generate_batches(self):
-        song_batch = []
+        chord_indexes_batch = []
         for i in range(self.song_batch_size):
             # song_batch.append(self._get_chord_indexes().__next__())
-            song_batch.append(self._preprocess(self._get_chord_indexes().__next__()))
-        return song_batch
+            chord_indexes_batch.append(self._preprocess(self._get_chord_indexes()))
+        self._get_input_and_target(chord_indexes_batch)
 
+    # Todo use shuffle
+    def get_batch(self):
+        start = self.batch_index
+        end = self.batch_index + self.batch_size
+        self.batch_index += self.batch_size
+        return np.array(self.input_buffer[start:end]), np.array(self.target_buffer[start:end])  # Todo, need to use numpy ?
+
+    def get_song_batch_num(self):
+        return int(len(self.file_list) / self.song_batch_size)
+
+    def get_batch_num(self):
+        return int(len(self.target_buffer) / self.batch_size)
+
+    def get_total_songs(self):
+        return len(self.file_list)
 
 
 if __name__ == "__main__":
     loader = ChordLoader(dataset_path='data/chord_indexes',
-                         song_batch_size=16)
-    print(loader.generate_batches())
-    print(loader.generate_batches())
+                         song_batch_size=16,
+                         batch_size=5,
+                         seq_len=20,
+                         loader_type='train')
+    loader.generate_batches()
+    input_buffer, target_buffer = loader.get_batch()
+    print(input_buffer)
+    print(target_buffer)
+
+    input_buffer, target_buffer = loader.get_batch()
+    print(input_buffer)
+    print(target_buffer)
