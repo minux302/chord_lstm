@@ -28,9 +28,12 @@ class ChordLoader:
         assert loader_type in ["train", "validation"], "loader_type is train or validation"
         file_list = load_chord_indexes(dataset_path)
         if loader_type == 'train':
-            self.file_list = file_list[int(len(file_list)*split_ratio):]
-        else:
             self.file_list = file_list[:int(len(file_list)*split_ratio)]
+            # self.file_list = file_list[:754]
+            print(len(self.file_list))
+        else:
+            self.file_list = file_list[int(len(file_list)*split_ratio):]
+            # self.file_list = file_list[754:]
 
         self.song_batch_size = song_batch_size
         self.batch_size = batch_size
@@ -70,6 +73,11 @@ class ChordLoader:
                 self.target_buffer.append(chord_index[i+self.seq_len])
 
     def generate_batches(self):
+        # todo
+        self.input_buffer = []
+        self.target_buffer = []
+        self.batch_index = 0
+
         chord_indexes_batch = []
         for i in range(self.song_batch_size):
             # song_batch.append(self._get_chord_indexes().__next__())

@@ -5,7 +5,7 @@ import time
 import datetime
 import tensorflow as tf
 
-import config
+import train_config as config
 from model import Model
 from loader import ChordLoader
 
@@ -32,12 +32,12 @@ def train(id, reset):
 
     # set train and valid loader
     train_loader = ChordLoader(dataset_path=config.DATASET_PATH,
-                               song_batch_size=config.BATCH_SIZE,
+                               song_batch_size=config.SONG_BATCH_SIZE,
                                batch_size=config.BATCH_SIZE,
                                seq_len=config.SEQ_LEN,
                                loader_type='train')
     valid_loader = ChordLoader(dataset_path=config.DATASET_PATH,
-                               song_batch_size=config.BATCH_SIZE,
+                               song_batch_size=config.SONG_BATCH_SIZE,
                                batch_size=config.BATCH_SIZE,
                                seq_len=config.SEQ_LEN,
                                loader_type='validation')
@@ -48,9 +48,9 @@ def train(id, reset):
         # model build
         model = Model(seq_len=config.SEQ_LEN,
                       class_num=config.CLASS_NUM)
-        input_note_pl, input_chord_pl, target_pl = model.placeholders()
+        input_pl, target_pl = model.placeholders()
         is_training_pl = tf.placeholder(tf.bool, name="is_training")
-        pred = model.infer(input_note_pl, input_chord_pl, is_training_pl)
+        pred = model.infer(input_pl, is_training_pl)
         loss = model.loss(pred, target_pl)
         opt = model.optimizer(loss)
 
@@ -69,6 +69,7 @@ def train(id, reset):
 
             train_song_batch_num = train_loader.get_song_batch_num()
             valid_song_batch_num = valid_loader.get_song_batch_num()
+            print("train_song", train_song_batch_num)
 
             for epoch in range(1, config.EPOCHS + 1):
 
@@ -83,16 +84,15 @@ def train(id, reset):
                         input_batch, target_batch = train_loader.get_batch()
 
                         feed_dict = {
-                            input_note_pl : batch_note_input,
-                            input_chord_pl: batch_chord_input,
-                            target_pl     : batch_target,
+                            input_pl: input_batch,
+                            target_pl: target_batch,
                             is_training_pl: True
                         }
                         _, _loss, _pred = sess.run([opt, loss, pred], feed_dict)
 
                     song_batch_iter_num += 1
                     print("epoch: {}, song: {}/{}, Loss: {}".format(epoch,
-                                                                    (song_batch_index + 1) * config.BATCH_SONG_SIZE,
+                                                                    (song_batch_index + 1) * config.SONG_BATCH_SIZE,
                                                                     train_loader.get_total_songs(),
                                                                     _loss))
 
@@ -103,16 +103,23 @@ def train(id, reset):
                     if song_batch_iter_num % config.VALIDATION_INTERVAL == 0:
 
                         # validate one batch only for time save
+                        valid_loader.generate_batches()
+                        input_batch, target_batch = valid_loader.get_batch()
+                        feed_dict = {
+                            input_pl: input_batch,
+                            target_pl: target_batch,
+                            is_training_pl: True
+                        }
+                        _, _loss, _pred = sess.run([opt, loss, pred], feed_dict)
+                        _, summary = sess.run([loss, merged], feed_dict)
+                        valid_writer.add_summary(summary, song_batch_iter_num)
 
-                _, summary = sess.run([loss, merged], feed_dict)
-                valid_writer.add_summary(summary, song_batch_iter_num)
+                print("save ckpt")
+                save_path = os.path.join(save_id_dir, id + '_' + str(epoch))
+                saver.save(sess, save_path)
 
-        print("save ckpt")
-        save_path = os.path.join(save_id_dir, id + '_' + str(epoch))
-        saver.save(sess, save_path)
-
-    train_writer.close()
-    valid_writer.close()
+            train_writer.close()
+            valid_writer.close()
 
     print('train is finished !!')
     td = datetime.timedelta(seconds=time.time() - start_time)
